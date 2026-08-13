@@ -1,0 +1,22 @@
+CREATE TABLE `demands` (
+	`id` text PRIMARY KEY NOT NULL,
+	`role` text NOT NULL,
+	`department` text NOT NULL,
+	`team` text NOT NULL,
+	`series` text NOT NULL,
+	`sub_series` text NOT NULL,
+	`level` text NOT NULL,
+	`headcount` integer DEFAULT 0 NOT NULL,
+	`request_type` text NOT NULL,
+	`employee_type` text NOT NULL,
+	`note` text NOT NULL,
+	`status` text NOT NULL,
+	`progress` text NOT NULL,
+	`urgency` text NOT NULL,
+	`ddl` text NOT NULL,
+	`ddl_state` text NOT NULL,
+	`initiated` text NOT NULL,
+	`ytd` integer,
+	`last_edited` text,
+	`updated_by` text DEFAULT '系统导入' NOT NULL
+);
