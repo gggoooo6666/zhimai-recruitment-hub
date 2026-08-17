@@ -12,5 +12,5 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "zhimai-recruitment-hub-db"
-# 创建数据库后，把 Cloudflare 分配的数据库 ID 填到下面
-# database_id = ""
+database_id = "8d2b5798-e1ce-436e-9d83-719817cee63e"
+migrations_dir = "drizzle"
