@@ -78,7 +78,7 @@ export async function POST(request: Request) {
         model,
         messages: [
           {
-            role: "developer",
+            role: "system",
             content: `${RECRUITING_CONTEXT}\n\n当前页面筛选汇总：\n${filterContext || "未提供筛选上下文"}`,
           },
           ...messages,
