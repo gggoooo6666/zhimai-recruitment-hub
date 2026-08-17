@@ -209,17 +209,28 @@ export default function RecruitmentDashboard() {
     {
       id: "welcome",
       role: "assistant",
-      content: "你好，我是招聘策略助手。可以结合历史 Offer、Cooper 近期信号和当前筛选结果，帮你判断优先级、目标公司与转化动作。",
+      content: "你好，我是招聘策略助手。在下方粘贴你的 OpenAI API Key 即可调用在线模型；留空则使用内置知识库回答。如在中国大陆网络，可填写反向代理地址。",
     },
   ]);
   const [toast, setToast] = useState("");
   const [accessPassword, setAccessPassword] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [apiBaseUrl, setApiBaseUrl] = useState("");
+  const [aiModel, setAiModel] = useState("gpt-4o-mini");
+  const [keyTestStatus, setKeyTestStatus] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [keyTestMessage, setKeyTestMessage] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem("zhimai-access-password");
     if (saved) setAccessPassword(saved);
+    const savedKey = localStorage.getItem("zhimai-openai-api-key");
+    if (savedKey) setOpenaiApiKey(savedKey);
+    const savedBaseUrl = localStorage.getItem("zhimai-openai-base-url");
+    if (savedBaseUrl) setApiBaseUrl(savedBaseUrl);
+    const savedModel = localStorage.getItem("zhimai-openai-model");
+    if (savedModel) setAiModel(savedModel);
   }, []);
 
   useEffect(() => {
@@ -507,10 +518,13 @@ export default function RecruitmentDashboard() {
         headers: {
           "Content-Type": "application/json",
           ...(accessPassword ? { "x-access-password": accessPassword } : {}),
+          ...(openaiApiKey ? { "x-openai-api-key": openaiApiKey } : {}),
         },
         body: JSON.stringify({
           messages: nextMessages.map(({ role, content }) => ({ role, content })),
           filterContext: `${filterSummary}\n${demandContext}`,
+          ...(apiBaseUrl ? { apiBaseUrl } : {}),
+          ...(aiModel ? { model: aiModel } : {}),
         }),
       });
       const result = await response.json() as {
@@ -543,9 +557,46 @@ export default function RecruitmentDashboard() {
     setAiMessages([{
       id: `welcome-${Date.now()}`,
       role: "assistant",
-      content: "对话已清空。你可以继续询问岗位优先级、目标公司、人才画像或 Offer 转化策略。",
+      content: "你好，我是招聘策略助手。在下方粘贴你的 OpenAI API Key 即可调用在线模型；留空则使用内置知识库回答。如在中国大陆网络，可填写反向代理地址。",
     }]);
     setAiMode(null);
+  }
+
+  async function testAiKey() {
+    if (!openaiApiKey.trim()) {
+      setKeyTestStatus("error");
+      setKeyTestMessage("请先输入 API Key");
+      return;
+    }
+    setKeyTestStatus("testing");
+    setKeyTestMessage("");
+    try {
+      const response = await fetch("/api/recruiting-ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessPassword ? { "x-access-password": accessPassword } : {}),
+          "x-openai-api-key": openaiApiKey.trim(),
+        },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "hello" }],
+          filterContext: "",
+          ...(apiBaseUrl ? { apiBaseUrl } : {}),
+          ...(aiModel ? { model: aiModel } : {}),
+        }),
+      });
+      const result = await response.json() as { mode?: string; error?: string };
+      if (response.ok && result.mode === "ai") {
+        setKeyTestStatus("ok");
+        setKeyTestMessage("连接成功，已可调用在线模型");
+      } else {
+        setKeyTestStatus("error");
+        setKeyTestMessage(result.error || "连接失败，请检查 Key、模型或代理地址");
+      }
+    } catch {
+      setKeyTestStatus("error");
+      setKeyTestMessage("请求异常，请检查网络或代理地址");
+    }
   }
 
   function verifyPassword() {
@@ -561,56 +612,21 @@ export default function RecruitmentDashboard() {
 
   if (!accessPassword) {
     return (
-      <main className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <div style={{
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          borderRadius: "20px",
-          padding: "48px",
-          width: "100%",
-          maxWidth: "420px",
-          textAlign: "center",
-          boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
-        }}>
-          <div style={{ fontSize: "48px", marginBottom: "16px" }}>🔒</div>
-          <h1 style={{ fontSize: "24px", marginBottom: "8px", color: "#f8fafc" }}>访问验证</h1>
-          <p style={{ color: "#94a3b8", marginBottom: "28px" }}>请输入访问密码以进入招聘需求监控中心</p>
+      <main className="password-gate">
+        <section className="password-card">
+          <div className="lock-icon">🔒</div>
+          <h1>访问验证</h1>
+          <p className="subtitle">请输入访问密码以进入招聘需求监控中心</p>
           <input
             type="password"
             value={passwordInput}
             onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(""); }}
             placeholder="访问密码"
             onKeyDown={(e) => { if (e.key === "Enter") verifyPassword(); }}
-            style={{
-              width: "100%",
-              padding: "14px 18px",
-              borderRadius: "12px",
-              border: "1px solid rgba(255,255,255,0.15)",
-              background: "rgba(0,0,0,0.25)",
-              color: "#f8fafc",
-              fontSize: "16px",
-              marginBottom: "16px",
-              outline: "none",
-            }}
           />
-          {passwordError && <p style={{ color: "#f87171", marginBottom: "16px", fontSize: "14px" }}>{passwordError}</p>}
-          <button
-            onClick={verifyPassword}
-            style={{
-              width: "100%",
-              padding: "14px",
-              borderRadius: "12px",
-              border: "none",
-              background: "linear-gradient(135deg, #6366f1, #ec4899)",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            进入系统
-          </button>
-        </div>
+          <p className="error">{passwordError}</p>
+          <button onClick={verifyPassword}>进入系统</button>
+        </section>
       </main>
     );
   }
@@ -986,6 +1002,65 @@ export default function RecruitmentDashboard() {
               {aiMode === "ai" ? "OpenAI 在线" : aiMode === "knowledge" ? "知识库模式" : "双源数据已就绪"}
             </span>
             <p>正在参考当前筛选的 <b>{filtered.length}</b> 条需求，不会发送候选人姓名或进展备注。</p>
+          </div>
+          <div className="ai-key-bar">
+            <label className="ai-key-row">
+              <span>API Key</span>
+              <input
+                type="password"
+                value={openaiApiKey}
+                onChange={(event) => {
+                  const value = event.target.value.trim();
+                  setOpenaiApiKey(value);
+                  localStorage.setItem("zhimai-openai-api-key", value);
+                  setKeyTestStatus("idle");
+                  setKeyTestMessage("");
+                }}
+                placeholder="sk-... 留空则使用知识库模式"
+              />
+            </label>
+            <label className="ai-key-row">
+              <span>代理地址</span>
+              <input
+                type="text"
+                value={apiBaseUrl}
+                onChange={(event) => {
+                  const value = event.target.value.trim();
+                  setApiBaseUrl(value);
+                  localStorage.setItem("zhimai-openai-base-url", value);
+                  setKeyTestStatus("idle");
+                  setKeyTestMessage("");
+                }}
+                placeholder="可选，如 api.openai-proxy.org"
+              />
+            </label>
+            <label className="ai-key-row">
+              <span>模型</span>
+              <select
+                value={aiModel}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setAiModel(value);
+                  localStorage.setItem("zhimai-openai-model", value);
+                  setKeyTestStatus("idle");
+                  setKeyTestMessage("");
+                }}
+              >
+                <option value="gpt-4o-mini">gpt-4o-mini（推荐）</option>
+                <option value="gpt-4o">gpt-4o</option>
+                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+              </select>
+              <button
+                type="button"
+                className={`ai-key-test ${keyTestStatus}`}
+                onClick={() => void testAiKey()}
+                disabled={keyTestStatus === "testing"}
+              >
+                {keyTestStatus === "testing" ? "测试中…" : "测试连接"}
+              </button>
+            </label>
+            {keyTestMessage && <small className={`ai-key-hint ${keyTestStatus}`}>{keyTestMessage}</small>}
+            <small className="ai-key-hint">Key 仅存储在你的浏览器中，服务端仅临时转发，不会保存。中国大陆访问需自行准备可连通 OpenAI 的代理。</small>
           </div>
           <div className="ai-messages" aria-live="polite">
             {aiMessages.map((message) => (

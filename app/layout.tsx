@@ -1,5 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#f7f8fc",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://zhimai-recruitment-hub.zhangyiqiong909.chatgpt.site"),

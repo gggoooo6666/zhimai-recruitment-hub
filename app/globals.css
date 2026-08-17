@@ -226,6 +226,20 @@ td:first-child strong, td:first-child small { display: block; } td:first-child s
 .ai-mode { flex-shrink: 0; min-height: 23px; padding: 0 8px; border-radius: 7px; display: inline-flex; align-items: center; gap: 5px; color: #4d936f; background: #eaf8f2; font-size: 7px; font-weight: 800; }
 .ai-mode i { width: 5px; height: 5px; border-radius: 50%; background: #33a878; box-shadow: 0 0 0 3px #d9f2e7; }
 .ai-mode.knowledge { color:#9a742f;background:#fff5e3}.ai-mode.knowledge i{background:#e5a44e;box-shadow:0 0 0 3px #f9e8cc}
+.ai-key-bar { padding: 10px 14px; border-bottom: 1px solid #ececf3; background: #fff; }
+.ai-key-row { display: grid; grid-template-columns: 56px minmax(0,1fr); align-items: center; gap: 8px; margin-bottom: 7px; }
+.ai-key-row:has(select) { grid-template-columns: 56px minmax(0,1fr) auto; }
+.ai-key-row span { color: #6b7290; font-size: 9px; font-weight: 700; }
+.ai-key-bar input, .ai-key-bar select { height: 32px; padding: 0 10px; border: 1px solid #e0e2ea; border-radius: 7px; background: #f8f9fc; color: #3f465c; font-size: 10px; outline: none; }
+.ai-key-bar input:focus, .ai-key-bar select:focus { border-color: #7778e5; box-shadow: 0 0 0 3px #5c5ce812; background: white; }
+.ai-key-test { height: 32px; padding: 0 10px; border: 0; border-radius: 7px; color: white; background: #6264df; font-size: 9px; font-weight: 700; white-space: nowrap; }
+.ai-key-test:disabled { opacity: .55; }
+.ai-key-test.ok { background: #30a879; }
+.ai-key-test.error { background: #df6c61; }
+.ai-key-hint { display: block; color: #a0a5b4; font-size: 7px; line-height: 1.5; }
+.ai-key-hint.ok { color: #30a879; }
+.ai-key-hint.error { color: #df6c61; }
+.ai-key-hint + .ai-key-hint { margin-top: 5px; }
 .ai-messages { flex: 1; padding: 16px 14px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; background: linear-gradient(180deg,#fff,#fcfcff); }
 .ai-message { display: flex; align-items: flex-start; gap: 8px; }
 .ai-message.user { flex-direction: row-reverse; }
@@ -318,4 +332,106 @@ td:first-child strong, td:first-child small { display: block; } td:first-child s
   .ai-brand > span { width: 32px; height: 32px; }
   .ai-brand h2 { font-size: 13px; }
   .ai-context p { max-width: 190px; }
+}
+
+/* 访问密码验证页面 */
+.password-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 10%, #eeeeff, #f7f8fc 48%);
+}
+
+.password-card {
+  width: min(420px, 100%);
+  padding: 44px 40px;
+  border: 1px solid #e3e4ef;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 28px 80px #1f24431a;
+  text-align: center;
+}
+
+.password-card .lock-icon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 22px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: linear-gradient(145deg, #7374f4, #5151d9);
+  font-size: 23px;
+  font-weight: 800;
+  box-shadow: 0 12px 28px #5c5ce83d;
+}
+
+.password-card h1 {
+  margin: 0;
+  font-size: 25px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.password-card .subtitle {
+  margin: 13px 0 28px;
+  color: #7d8498;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.password-card input[type="password"] {
+  width: 100%;
+  height: 46px;
+  padding: 0 16px;
+  border: 1px solid #e1e3eb;
+  border-radius: 10px;
+  background: #f8f9fc;
+  color: var(--ink);
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.password-card input[type="password"]:focus {
+  background: white;
+  border-color: #b8b9f2;
+  box-shadow: 0 0 0 3px #5c5ce812;
+}
+
+.password-card .error {
+  margin: 12px 0 0;
+  color: #df6c61;
+  font-size: 12px;
+  min-height: 18px;
+}
+
+.password-card button {
+  width: 100%;
+  height: 46px;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 10px;
+  color: white;
+  background: #5c5ce8;
+  font-size: 14px;
+  font-weight: 750;
+  transition: 0.2s;
+}
+
+.password-card button:hover {
+  background: #4848cf;
+}
+
+@media (max-width: 480px) {
+  .password-card {
+    padding: 32px 24px;
+  }
+  .password-card h1 {
+    font-size: 22px;
+  }
+  .password-card .subtitle {
+    font-size: 12px;
+  }
 }

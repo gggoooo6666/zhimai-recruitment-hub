@@ -10,6 +10,8 @@ type ChatMessage = {
 type ChatRequest = {
   messages?: ChatMessage[];
   filterContext?: string;
+  apiBaseUrl?: string;
+  model?: string;
 };
 
 const RECRUITING_CONTEXT = `
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   const filterContext = String(payload.filterContext ?? "").slice(0, 6_000);
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = request.headers.get("x-openai-api-key") || process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return Response.json({
       answer: answerFromKnowledge(messages.at(-1)?.content ?? "", filterContext),
@@ -60,45 +62,47 @@ export async function POST(request: Request) {
     });
   }
 
-  const safetyIdentifier = await createSafetyIdentifier(request);
+  const apiBaseUrl = normalizeApiBaseUrl(payload.apiBaseUrl);
+  const model = payload.model?.trim() || process.env.OPENAI_MODEL || "gpt-4o-mini";
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 28_000);
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(`${apiBaseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
-        instructions: `${RECRUITING_CONTEXT}\n\n当前页面筛选汇总：\n${filterContext || "未提供筛选上下文"}`,
-        input: messages,
-        reasoning: { effort: "low" },
-        text: { verbosity: "low" },
-        max_output_tokens: 900,
-        store: false,
-        ...(safetyIdentifier ? { safety_identifier: safetyIdentifier } : {}),
+        model,
+        messages: [
+          {
+            role: "developer",
+            content: `${RECRUITING_CONTEXT}\n\n当前页面筛选汇总：\n${filterContext || "未提供筛选上下文"}`,
+          },
+          ...messages,
+        ],
+        temperature: 0.4,
+        max_tokens: 900,
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => "");
+      console.error("OpenAI API error:", response.status, errorBody.slice(0, 500));
+      const friendly = parseOpenAiError(response.status, errorBody);
       return Response.json(
-        { error: "AI 服务暂时不可用，请稍后重试" },
+        { error: friendly },
         { status: 502 },
       );
     }
 
     const result = await response.json() as {
-      output?: Array<{ content?: Array<{ type?: string; text?: string }> }>;
+      choices?: Array<{ message?: { content?: string } }>;
     };
-    const answer = result.output
-      ?.flatMap((item) => item.content ?? [])
-      .find((item) => item.type === "output_text")
-      ?.text
-      ?.trim();
+    const answer = result.choices?.[0]?.message?.content?.trim();
 
     if (!answer) {
       return Response.json(
@@ -133,15 +137,34 @@ function sanitizeMessages(value: ChatRequest["messages"]): ChatMessage[] {
     }));
 }
 
-async function createSafetyIdentifier(request: Request) {
-  const email = request.headers.get("oai-authenticated-user-email");
-  if (!email) return null;
-  const bytes = new TextEncoder().encode(email.toLowerCase());
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("")
-    .slice(0, 32);
+function normalizeApiBaseUrl(value: unknown) {
+  const fallback = "https://api.openai.com/v1";
+  if (typeof value !== "string" || !value.trim()) return fallback;
+  let url = value.trim();
+  if (url.endsWith("/")) url = url.slice(0, -1);
+  if (!url.startsWith("http://") && !url.startsWith("https://")) url = `https://${url}`;
+  if (!/\/v\d+$/.test(url) && !url.endsWith("/v1")) url = `${url}/v1`;
+  try {
+    new URL(url);
+    return url;
+  } catch {
+    return fallback;
+  }
+}
+
+function parseOpenAiError(status: number, body: string) {
+  if (status === 401) return "API Key 无效或已过期，请检查后重新输入";
+  if (status === 429) return "API 调用频率超限或余额不足，请稍后再试";
+  if (status === 404) return "当前模型不可用，请尝试切换模型（如 gpt-4o-mini）";
+  if (status >= 500) return "AI 服务商暂时不可用，请稍后重试";
+  let detail = "";
+  try {
+    const parsed = JSON.parse(body) as { error?: { message?: string } };
+    detail = parsed.error?.message ?? "";
+  } catch {
+    detail = body.slice(0, 200);
+  }
+  return detail ? `AI 服务错误：${detail}` : "AI 服务暂时不可用，请稍后重试";
 }
 
 function answerFromKnowledge(question: string, filterContext: string) {
