@@ -2,6 +2,11 @@ name = "zhimai-recruitment-hub"
 main = "worker/index.ts"
 compatibility_date = "2026-08-13"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+routes = [
+  { pattern = "zhimai-hr.online", custom_domain = true },
+  { pattern = "www.zhimai-hr.online", custom_domain = true },
+]
 
 # 生产环境变量，在 Cloudflare 控制台或 wrangler secret 中设置
 # OPENAI_API_KEY = ""

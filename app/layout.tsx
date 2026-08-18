@@ -4,12 +4,11 @@ import "./globals.css";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   themeColor: "#f7f8fc",
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://zhimai-recruitment-hub.zhangyiqiong909.chatgpt.site"),
+  metadataBase: new URL("https://zhimai-hr.online"),
   title: "招聘需求监控中心",
   description: "多人共享新增、筛选和编辑招聘需求，并让 AI 助手结合 74 个历史 Offer 与 Cooper 近期信号分析岗位策略。",
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
